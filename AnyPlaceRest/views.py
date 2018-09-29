@@ -4,7 +4,7 @@ from AnyPlaceRest.models import *
 from AnyPlaceRest import serializers
 from AnyPlaceRest.naviaddress_api import NaviAddressApi
 from datetime import datetime
-
+from django.db.models import Q
 
 # Create your views here.
 
@@ -251,7 +251,7 @@ def user_get_orders(request):
     elif role == '1':
         orders = Order.objects.filter(buyer_id=token)
     elif role == '2':
-        orders = Order.objects.filter(seller_id=token).union(Order.objects.filter(buyer_id=token))
+        orders = Order.objects.filter(Q(seller_id=token) | Q(buyer_id=token))
     else:
         return JsonResponse({}, status=400)
 
