@@ -99,8 +99,8 @@ def place_naviaddrss_edit(request, place):
         return JsonResponse({}, status=404)
     if request.method == 'POST':
         body = json.loads(request.body)
-        lat = float(body.get('lat'))
-        lng = float(body.get('lng'))
+        lat = body.get('lat')
+        lng = body.get('lng')
         map_visibility = body.get('map_visibility')
         cover = body.get('cover')
         if navi is None:
@@ -115,7 +115,8 @@ def place_naviaddrss_edit(request, place):
             if status != 200:
                 return JsonResponse({'result': 'NaviAddress API Error'}, status=500)
             navi_json, status = api.update_naviaddress(container=container, naviaddress=naviaddress,
-                                                       name=place.title, description=place.description)
+                                                       name=place.title, description=place.description,
+                                                       cover=cover, map_visibility=map_visibility)
             if status != 200:
                 return JsonResponse({'result': 'NaviAddress API Error'}, status=500)
             navi = NaviAddress(container=container, naviaddress=naviaddress, name=place.title)
