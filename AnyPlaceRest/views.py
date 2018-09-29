@@ -41,7 +41,7 @@ def place_create(request):
         phone=phone,
     )
     place.save()
-    return JsonResponse({'result': serializers.place_serialize(place)}, status=200)
+    return JsonResponse({'result': serializers.place_serialize(place.id)}, status=200)
 
 
 def place_info(request, place):
