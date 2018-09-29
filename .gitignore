@@ -1,4 +1,5 @@
 .idea
 /venv
-*.sqlite
+*.sqlite3
 *.jpg
+*.pyc
