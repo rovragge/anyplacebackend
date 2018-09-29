@@ -125,7 +125,7 @@ def place_naviaddrss_edit(request, place):
         else:
             api.update_naviaddress(container=navi.container, naviaddress=navi.naviaddress,
                                    name=place.title, description=place.description,
-                                   lat=lat, lng=lng, cover=cover, map_visibility=map_visibility,)
+                                   lat=lat, lng=lng, cover=cover, map_visibility=map_visibility, )
             return JsonResponse({'result': api.get_naviaddress(navi.container, navi.naviaddress)}, status=200)
     if request.method == 'DELETE':
         if navi is None:
@@ -195,6 +195,37 @@ def user_whoami(request):
     user = User.objects.filter(pk=token)
     res = serializers.user_serialize(user)
     return JsonResponse({'result': res}, status=200 if res is not None else 401)
+
+
+def user_create_order(request):
+    token = int(request.META.get('HTTP_X_AUTH_TOKEN'))
+    user = User.objects.filter(pk=token).first()
+    body = json.loads(request.body)
+    buyer_id = body.get('buyer_id')
+    product = body.get('product')
+    price = body.get('price')
+    place_id = body.get('place_id')
+    category_id = body.get('category_id')
+    product_url = body.get('product_url')
+    acceptance_date = body.get('acceptance_date')
+    delivery_date = body.get('delivery_date')
+    if buyer_id is None or product is None or price is None or place_id is None or category_id is None or product_url is None or acceptance_date is None or delivery_date is None:
+        return JsonResponse({}, status=400)
+
+    order = Order(
+        seller=user,
+        buyer_id=buyer_id,
+        product=product,
+        price=price,
+        place_id=place_id,
+        category_id=category_id,
+        product_url=product_url,
+        acceptance_date=acceptance_date,
+        delivery_date=delivery_date,
+        status=0
+    )
+    order.save()
+    return JsonResponse({'result': serializers.order_serialize(order.id)}, status=200)
 
 
 def user_get_orders(request):
