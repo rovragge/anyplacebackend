@@ -22,7 +22,7 @@ def upload_image_navi(request):
 
 def categories_get(request):
     categories = Category.objects.all()
-    return JsonResponse({'result': serializers.category_serialize(categories)}, status=200)
+    return JsonResponse({'result': serializers.serialise(categories)}, status=200)
 
 
 def place_create(request):
@@ -41,7 +41,7 @@ def place_create(request):
         phone=phone,
     )
     place.save()
-    return JsonResponse({'result': serializers.place_serialize(place.id)}, status=200)
+    return JsonResponse({'result': place.as_dict()}, status=200)
 
 
 def place_info(request, place):
@@ -49,7 +49,7 @@ def place_info(request, place):
     if place is None:
         return JsonResponse({}, status=404)
     if request.method == 'GET':
-        return JsonResponse({'result': serializers.place_serialize(place.id)}, status=200)
+        return JsonResponse({'result': place.as_dict()}, status=200)
     return JsonResponse({}, status=415)
 
 
@@ -58,7 +58,7 @@ def place_categories_edit(request, place):
     if place is None:
         return JsonResponse({}, status=404)
     if request.method == 'GET':
-        return JsonResponse({'result': serializers.category_serialize(place.categories.all())}, status=200)
+        return JsonResponse({'result': serializers.serialise(place.categories.all())}, status=200)
     if request.method == 'POST':
         body = json.loads(request.body)
         categories = body['categories']
@@ -83,7 +83,7 @@ def place_get_orders(request, place):
     orders = Order.objects.filter(place_id=place.id)
     if status is not None:
         orders = orders.filter(status=status)
-    return JsonResponse({'result': serializers.order_serialize(orders)}, status=200)
+    return JsonResponse({'result': serializers.serialise(orders)}, status=200)
 
 
 def place_naviaddrss_edit(request, place):
@@ -167,7 +167,7 @@ def user_update(request):
         user.send_frequency = body['send_frequency']
 
     user.save()
-    return JsonResponse({'result': serializers.user_serialize(user.id)}, status=200)
+    return JsonResponse({'result': user.as_dict()}, status=200)
 
 
 def user_passport_upload(request):
@@ -178,7 +178,7 @@ def user_passport_upload(request):
     file = request.FILES['image']
     user.passport_photo = file
     user.save()
-    return JsonResponse({'result': serializers.user_serialize(user.id)}, status=200)
+    return JsonResponse({'result': user.as_dict()}, status=200)
 
 
 def user_login(request):
@@ -187,16 +187,16 @@ def user_login(request):
     password = body.get('password')
     if login is None or password is None:
         return JsonResponse({}, status=400)
-    user = User.objects.filter(login=login, password=password)
-    res = serializers.user_serialize(user)
-    return JsonResponse({'result': res}, status=200 if res is not None else 401)
+    user = User.objects.filter(login=login, password=password).first()
+    if user is None:
+        return JsonResponse({'result': None}, status=401)
+    return JsonResponse({'result': user.as_dict()}, status=200)
 
 
 def user_whoami(request):
     token = int(request.META.get('HTTP_X_AUTH_TOKEN'))
-    user = User.objects.filter(pk=token)
-    res = serializers.user_serialize(user)
-    return JsonResponse({'result': res}, status=200 if res is not None else 401)
+    user = User.objects.filter(pk=token).first()
+    return JsonResponse({'result': user.as_dict()}, status=200)
 
 
 def user_manage_order(request):
@@ -230,7 +230,7 @@ def user_manage_order(request):
             status=0
         )
         order.save()
-        return JsonResponse({'result': serializers.order_serialize(order.id)}, status=200)
+        return JsonResponse({'result': order.as_dict()}, status=200)
 
     if request.method == 'PUT':
         order_id = body.get('order_id')
@@ -240,7 +240,7 @@ def user_manage_order(request):
         order = Order.objects.filter(pk=order_id).first()
         order.status = status
         order.save()
-        return JsonResponse({'result': serializers.order_serialize(order.id)}, status=200)
+        return JsonResponse({'result': order.as_dict()}, status=200)
 
 
 def user_get_orders(request):
@@ -258,7 +258,7 @@ def user_get_orders(request):
     statuses = request.GET.get('statuses')
     if statuses is not None:
         orders = orders.filter(status__in=statuses.split(','))
-    return JsonResponse({'result': serializers.order_serialize(orders)}, status=200)
+    return JsonResponse({'result': serializers.serialise(orders)}, status=200)
 
 
 def user_update_naviaddress(request):
