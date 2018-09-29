@@ -197,10 +197,20 @@ def user_whoami(request):
     return JsonResponse({'result': res}, status=200 if res is not None else 401)
 
 
-def user_get_orders_seller(request):
+def user_get_orders(request):
     token = int(request.META.get('HTTP_X_AUTH_TOKEN'))
-    orders = Order.objects.filter(seller_id=token)
-    return JsonResponse({'result': serializers.order_serialize(orders)})
+    role = request.GET.get('role')
+    if role is None or role == '0':
+        orders = Order.objects.filter(seller_id=token)
+    elif role == '1':
+        orders = Order.objects.filter(buyer_id=token)
+    else:
+        return JsonResponse({}, status=400)
+
+    statuses = request.GET.get('status').split(',')
+    if statuses is not None:
+        orders = orders.filter(status__in=statuses)
+    return JsonResponse({'result': serializers.order_serialize(orders)}, status=200)
 
 
 def user_update_naviaddress(request):

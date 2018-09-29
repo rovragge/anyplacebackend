@@ -10,7 +10,7 @@ urlpatterns = [
     path('user/update', views.user_update),  # POST
     path('user/register', views.user_register),  # POST
     path('user/whoami', views.user_whoami),  # GET
-    path('user/orders', views.user_get_orders_seller),  # GET
+    path('user/orders', views.user_get_orders),  # GET
     path('user/naviaddress', views.user_update_naviaddress),  # POST
     path('user/passport', views.user_passport_upload),  # POST
 
