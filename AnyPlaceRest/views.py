@@ -3,6 +3,7 @@ from django.http import JsonResponse, HttpResponse
 from AnyPlaceRest.models import *
 from AnyPlaceRest import serializers
 from AnyPlaceRest.naviaddress_api import NaviAddressApi
+from datetime import datetime
 
 
 # Create your views here.
@@ -223,8 +224,8 @@ def user_manage_order(request):
             place_id=place_id,
             category_id=category_id,
             product_url=product_url,
-            acceptance_date=acceptance_date,
-            delivery_date=delivery_date,
+            acceptance_date=datetime.fromtimestamp(acceptance_date),
+            delivery_date=datetime.fromtimestamp(delivery_date),
             status=0
         )
         order.save()
@@ -248,12 +249,14 @@ def user_get_orders(request):
         orders = Order.objects.filter(seller_id=token)
     elif role == '1':
         orders = Order.objects.filter(buyer_id=token)
+    elif role == '2':
+        orders = Order.objects.filter(seller_id=token).union(Order.objects.filter(buyer_id=token))
     else:
         return JsonResponse({}, status=400)
 
-    statuses = request.GET.get('status').split(',')
+    statuses = request.GET.get('statuses')
     if statuses is not None:
-        orders = orders.filter(status__in=statuses)
+        orders = orders.filter(status__in=statuses.split(','))
     return JsonResponse({'result': serializers.order_serialize(orders)}, status=200)
 
 
