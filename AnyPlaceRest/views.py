@@ -9,11 +9,13 @@ from django.db.models import Q
 
 # Create your views here.
 
+# Returns image from local storage by path
 def get_local_image(request, path):
     with open(path, 'rb') as f:
         return HttpResponse(f.read(), content_type="image/jpeg")
 
 
+# Uploads image to NaviAddress
 def upload_image_navi(request):
     file = request.FILES.get('image')
     if file is None:
@@ -24,16 +26,19 @@ def upload_image_navi(request):
     return JsonResponse({'result': result}, status=status)
 
 
+# Get all categories from database
 def categories_get(request):
     categories = Category.objects.all()
     return JsonResponse({'result': serializers.serialise_list(categories)}, status=200)
 
 
+# Get all places from database
 def place_get(request):
     places = Place.objects.all()
     return JsonResponse({'result': serializers.serialise_list(places)}, status=200)
 
 
+# POST request to create new place
 def place_create(request):
     body = json.loads(request.body)
     title = body.get('title')
@@ -42,7 +47,6 @@ def place_create(request):
     phone = body.get('phone')
     if title is None or description is None or address is None or phone is None:
         return HttpResponse(status=400)
-
     place = Place(
         title=title,
         description=description,
@@ -53,6 +57,7 @@ def place_create(request):
     return JsonResponse({'result': place.as_dict()}, status=200)
 
 
+# Get place info from database
 def place_info(request, place):
     place = Place.objects.filter(pk=place).first()
     if place is None:
@@ -62,6 +67,9 @@ def place_info(request, place):
     return HttpResponse(status=415)
 
 
+# GET to get place categories
+# POST to add categories to place
+# DELETE to remove categories from place
 def place_categories_edit(request, place):
     place = Place.objects.filter(pk=place).first()
     if place is None:
@@ -84,6 +92,7 @@ def place_categories_edit(request, place):
         return HttpResponse(status=200)
 
 
+# Get orders for place with filter by status
 def place_get_orders(request, place):
     place = Place.objects.filter(pk=place).first()
     if place is None:
@@ -95,6 +104,9 @@ def place_get_orders(request, place):
     return JsonResponse({'result': serializers.serialise_list(orders)}, status=200)
 
 
+# GET to get detail NaviAddress info for place
+# POST to create or update NaviAddress
+# DELETE to remove NaviAddress
 def place_naviaddrss_edit(request, place):
     place = Place.objects.filter(pk=place).first()
     if place is None:
@@ -148,6 +160,7 @@ def place_naviaddrss_edit(request, place):
         return JsonResponse({'result': 'NaviAddress API Error'}, status=502)
 
 
+# Create new user
 def user_register(request):
     body = json.loads(request.body)
     login = body.get('login')
@@ -161,6 +174,7 @@ def user_register(request):
         return HttpResponse(status=200)
 
 
+# Update user info
 def user_update(request):
     token = int(request.META.get('HTTP_X_AUTH_TOKEN'))
     user = User.objects.filter(pk=token).first()
@@ -180,6 +194,7 @@ def user_update(request):
     return JsonResponse({'result': user.as_dict()}, status=200)
 
 
+# Upload passport image for user
 def user_passport_upload(request):
     token = int(request.META.get('HTTP_X_AUTH_TOKEN'))
     user = User.objects.filter(pk=token).first()
@@ -191,6 +206,7 @@ def user_passport_upload(request):
     return JsonResponse({'result': user.as_dict()}, status=200)
 
 
+# Login existing user
 def user_login(request):
     body = json.loads(request.body)
     login = body.get('login')
@@ -203,12 +219,15 @@ def user_login(request):
     return JsonResponse({'result': user.as_dict()}, status=200)
 
 
+# Get info for logged-in user
 def user_whoami(request):
     token = int(request.META.get('HTTP_X_AUTH_TOKEN'))
     user = User.objects.filter(pk=token).first()
     return JsonResponse({'result': user.as_dict()}, status=200)
 
 
+# POST to create new order
+# PUT to update existing order
 def user_manage_order(request):
     token = int(request.META.get('HTTP_X_AUTH_TOKEN'))
     user = User.objects.filter(pk=token).first()
@@ -253,6 +272,7 @@ def user_manage_order(request):
         return JsonResponse({'result': order.as_dict()}, status=200)
 
 
+# GET active orders with filter by role (seller/buyer) and status
 def user_get_orders(request):
     token = int(request.META.get('HTTP_X_AUTH_TOKEN'))
     role = request.GET.get('role')
@@ -271,6 +291,8 @@ def user_get_orders(request):
     return JsonResponse({'result': serializers.serialise_list(orders)}, status=200)
 
 
+# GET to get detail NaviAddress info for user
+# POST to create or update NaviAddress
 def user_update_naviaddress(request):
     token = int(request.META.get('HTTP_X_AUTH_TOKEN'))
     user = User.objects.filter(pk=token).first()
@@ -285,8 +307,8 @@ def user_update_naviaddress(request):
 
     if request.method == 'POST':
         body = json.loads(request.body)
-        lat = float(body.get('lat'))
-        lng = float(body.get('lng'))
+        lat = body.get('lat')
+        lng = body.get('lng')
 
         if navi is None:
             if lat is None or lng is None:
