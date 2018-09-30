@@ -150,9 +150,10 @@ def place_naviaddrss_edit(request, place):
 
 def user_register(request):
     body = json.loads(request.body)
-    login = body['login']
-    password = body['password']
-
+    login = body.get('login')
+    password = body.get('password')
+    if login is None or password is None:
+        return HttpResponse(status=400)
     if User.objects.filter(login=login).exists():
         return HttpResponse(status=409)
     else:
