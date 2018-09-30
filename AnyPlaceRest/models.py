@@ -68,7 +68,7 @@ class Place(models.Model):
             'description': self.description,
             'address': self.address,
             'phone': self.phone,
-            'categories': [category.as_dict() for category in self.categories.values()]
+            'categories': [category.as_dict() for category in self.categories.all()]
         }
 
 

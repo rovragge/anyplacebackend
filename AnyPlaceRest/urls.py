@@ -17,10 +17,10 @@ urlpatterns = [
 
     path('categories', views.categories_get),  # GET
 
+    path('places', views.place_get),
     path('place/create', views.place_create),  # POST
     path('place/<place>', views.place_info),  # POST
     path('place/<place>/categories', views.place_categories_edit),
     path('place/<place>/naviaddress', views.place_naviaddrss_edit),
     path('place/<place>/orders', views.place_get_orders),
-
 ]

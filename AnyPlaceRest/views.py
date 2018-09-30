@@ -6,6 +6,7 @@ from AnyPlaceRest.naviaddress_api import NaviAddressApi
 from datetime import datetime
 from django.db.models import Q
 
+
 # Create your views here.
 
 def get_local_image(request, path):
@@ -14,7 +15,10 @@ def get_local_image(request, path):
 
 
 def upload_image_navi(request):
-    file = request.FILES['image'].file
+    file = request.FILES.get('image')
+    if file is None:
+        return HttpResponse(status=400)
+    file = file.file
     api = NaviAddressApi()
     result, status = api.upload_image(file)
     return JsonResponse({'result': result}, status=status)
@@ -22,7 +26,12 @@ def upload_image_navi(request):
 
 def categories_get(request):
     categories = Category.objects.all()
-    return JsonResponse({'result': serializers.serialise(categories)}, status=200)
+    return JsonResponse({'result': serializers.serialise_list(categories)}, status=200)
+
+
+def place_get(request):
+    places = Place.objects.all()
+    return JsonResponse({'result': serializers.serialise_list(places)}, status=200)
 
 
 def place_create(request):
@@ -32,7 +41,7 @@ def place_create(request):
     address = body.get('address')
     phone = body.get('phone')
     if title is None or description is None or address is None or phone is None:
-        return JsonResponse({}, status=400)
+        return HttpResponse(status=400)
 
     place = Place(
         title=title,
@@ -47,56 +56,56 @@ def place_create(request):
 def place_info(request, place):
     place = Place.objects.filter(pk=place).first()
     if place is None:
-        return JsonResponse({}, status=404)
+        return HttpResponse(status=404)
     if request.method == 'GET':
         return JsonResponse({'result': place.as_dict()}, status=200)
-    return JsonResponse({}, status=415)
+    return HttpResponse(status=415)
 
 
 def place_categories_edit(request, place):
     place = Place.objects.filter(pk=place).first()
     if place is None:
-        return JsonResponse({}, status=404)
+        return HttpResponse(status=404)
     if request.method == 'GET':
-        return JsonResponse({'result': serializers.serialise(place.categories.all())}, status=200)
+        return JsonResponse({'result': serializers.serialise_list(place.categories.all())}, status=200)
     if request.method == 'POST':
         body = json.loads(request.body)
         categories = body['categories']
         cats = Category.objects.filter(pk__in=categories).all()
         place.categories.add(*cats)
         place.save()
-        return JsonResponse({}, status=200)
+        return HttpResponse(status=200)
     if request.method == 'DELETE':
         body = json.loads(request.body)
         categories = body['categories']
         cats = Category.objects.filter(pk__in=categories).all()
         place.categories.remove(*cats)
         place.save()
-        return JsonResponse({}, status=200)
+        return HttpResponse(status=200)
 
 
 def place_get_orders(request, place):
     place = Place.objects.filter(pk=place).first()
     if place is None:
-        return JsonResponse({}, status=404)
+        return HttpResponse(status=404)
     status = request.GET.get('status')
     orders = Order.objects.filter(place_id=place.id)
     if status is not None:
         orders = orders.filter(status=status)
-    return JsonResponse({'result': serializers.serialise(orders)}, status=200)
+    return JsonResponse({'result': serializers.serialise_list(orders)}, status=200)
 
 
 def place_naviaddrss_edit(request, place):
     place = Place.objects.filter(pk=place).first()
     if place is None:
-        return JsonResponse({}, status=404)
+        return HttpResponse(status=404)
     navi = place.navi_address
     api = NaviAddressApi()
     if request.method == 'GET':
         if navi is not None:
             result = api.get_naviaddress(navi.container, navi.naviaddress)
             return JsonResponse({'result': result}, status=200)
-        return JsonResponse({}, status=404)
+        return HttpResponse(status=404)
     if request.method == 'POST':
         body = json.loads(request.body)
         lat = body.get('lat')
@@ -105,20 +114,20 @@ def place_naviaddrss_edit(request, place):
         cover = body.get('cover')
         if navi is None:
             if lat is None or lng is None:
-                return JsonResponse({}, status=400)
+                return HttpResponse(status=400)
             navi_json, status = api.create_naviaddress(lat=lat, lng=lng)
             if status != 200:
-                return JsonResponse({'result': 'NaviAddress API Error'}, status=500)
+                return JsonResponse({'result': 'NaviAddress API Error'}, status=502)
             container = navi_json['container']
             naviaddress = navi_json['naviaddress']
             navi_json, status = api.confirm_naviaddress(container=container, naviaddress=naviaddress)
             if status != 200:
-                return JsonResponse({'result': 'NaviAddress API Error'}, status=500)
+                return JsonResponse({'result': 'NaviAddress API Error'}, status=502)
             navi_json, status = api.update_naviaddress(container=container, naviaddress=naviaddress,
                                                        name=place.title, description=place.description,
                                                        cover=cover, map_visibility=map_visibility)
             if status != 200:
-                return JsonResponse({'result': 'NaviAddress API Error'}, status=500)
+                return JsonResponse({'result': 'NaviAddress API Error'}, status=502)
             navi = NaviAddress(container=container, naviaddress=naviaddress, name=place.title)
             navi.save()
             place.navi_address = navi
@@ -136,7 +145,7 @@ def place_naviaddrss_edit(request, place):
         if status == 200:
             navi.delete()
             return JsonResponse({'result': result}, status=200)
-        return JsonResponse({'result': 'NaviAddress API Error'}, status=500)
+        return JsonResponse({'result': 'NaviAddress API Error'}, status=502)
 
 
 def user_register(request):
@@ -145,17 +154,17 @@ def user_register(request):
     password = body['password']
 
     if User.objects.filter(login=login).exists():
-        return JsonResponse({}, status=409)
+        return HttpResponse(status=409)
     else:
         User(login=login, password=password).save()
-        return JsonResponse({}, status=200)
+        return HttpResponse(status=200)
 
 
 def user_update(request):
     token = int(request.META.get('HTTP_X_AUTH_TOKEN'))
     user = User.objects.filter(pk=token).first()
     if user is None:
-        return JsonResponse({}, status=401)
+        return HttpResponse(status=401)
     body = json.loads(request.body)
     if body.get('fio') is not None:
         user.fio = body['fio']
@@ -174,7 +183,7 @@ def user_passport_upload(request):
     token = int(request.META.get('HTTP_X_AUTH_TOKEN'))
     user = User.objects.filter(pk=token).first()
     if user is None:
-        return JsonResponse({}, status=401)
+        return HttpResponse(status=401)
     file = request.FILES['image']
     user.passport_photo = file
     user.save()
@@ -186,10 +195,10 @@ def user_login(request):
     login = body.get('login')
     password = body.get('password')
     if login is None or password is None:
-        return JsonResponse({}, status=400)
+        return HttpResponse(status=400)
     user = User.objects.filter(login=login, password=password).first()
     if user is None:
-        return JsonResponse({'result': None}, status=401)
+        return HttpResponse(status=401)
     return JsonResponse({'result': user.as_dict()}, status=200)
 
 
@@ -215,7 +224,7 @@ def user_manage_order(request):
         delivery_date = body.get('delivery_date')
 
         if buyer_id is None or product is None or price is None or place_id is None or category_id is None or product_url is None or acceptance_date is None or delivery_date is None:
-            return JsonResponse({}, status=400)
+            return HttpResponse(status=400)
 
         order = Order(
             seller=user,
@@ -236,7 +245,7 @@ def user_manage_order(request):
         order_id = body.get('order_id')
         status = body.get('status')
         if order_id is None or status is None:
-            return JsonResponse({}, status=400)
+            return HttpResponse(status=400)
         order = Order.objects.filter(pk=order_id).first()
         order.status = status
         order.save()
@@ -253,12 +262,12 @@ def user_get_orders(request):
     elif role == '2':
         orders = Order.objects.filter(Q(seller_id=token) | Q(buyer_id=token))
     else:
-        return JsonResponse({}, status=400)
+        return HttpResponse(status=400)
 
     statuses = request.GET.get('statuses')
     if statuses is not None:
         orders = orders.filter(status__in=statuses.split(','))
-    return JsonResponse({'result': serializers.serialise(orders)}, status=200)
+    return JsonResponse({'result': serializers.serialise_list(orders)}, status=200)
 
 
 def user_update_naviaddress(request):
@@ -271,7 +280,7 @@ def user_update_naviaddress(request):
         if navi is not None:
             result = api.get_naviaddress(navi.container, navi.naviaddress)
             return JsonResponse({'result': result}, status=200)
-        return JsonResponse({}, status=404)
+        return HttpResponse(status=404)
 
     if request.method == 'POST':
         body = json.loads(request.body)
@@ -280,18 +289,18 @@ def user_update_naviaddress(request):
 
         if navi is None:
             if lat is None or lng is None:
-                return JsonResponse({}, status=400)
+                return HttpResponse(status=400)
             navi_json, status = api.create_naviaddress(lat=lat, lng=lng)
             if status != 200:
-                return JsonResponse({'result': 'NaviAddress API Error'}, status=500)
+                return JsonResponse({'result': 'NaviAddress API Error'}, status=502)
             container = navi_json['container']
             naviaddress = navi_json['naviaddress']
             navi_json, status = api.confirm_naviaddress(container=container, naviaddress=naviaddress)
             if status != 200:
-                return JsonResponse({'result': 'NaviAddress API Error'}, status=500)
+                return JsonResponse({'result': 'NaviAddress API Error'}, status=502)
             navi_json, status = api.update_naviaddress(container=container, naviaddress=naviaddress, name=user.login)
             if status != 200:
-                return JsonResponse({'result': 'NaviAddress API Error'}, status=500)
+                return JsonResponse({'result': 'NaviAddress API Error'}, status=502)
             navi = NaviAddress(container=container, naviaddress=naviaddress, name=user.login)
             navi.save()
             user.navi_address = navi
