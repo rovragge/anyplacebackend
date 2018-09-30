@@ -68,7 +68,8 @@ class Place(models.Model):
             'description': self.description,
             'address': self.address,
             'phone': self.phone,
-            'categories': [category.as_dict() for category in self.categories.all()]
+            'categories': [category.as_dict() for category in self.categories.all()],
+            'navi_address': None if self.navi_address is None else self.navi_address.as_dict()
         }
 
 
